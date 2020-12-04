@@ -42,9 +42,7 @@ using namespace std;
 
 SimpleTrade::SimpleTrade(StrategyID strategyID, const std::string& strategyName, const std::string& groupName):
     Strategy(strategyID, strategyName, groupName),
-    m_momentum_map(),
     m_instrument_order_id_map(),
-    m_momentum(0),
     m_aggressiveness(0),
     m_position_size(100),
     m_debug_on(true),
@@ -59,13 +57,12 @@ SimpleTrade::SimpleTrade(StrategyID strategyID, const std::string& strategyName,
 
 SimpleTrade::~SimpleTrade()
 {
+
 }
 
 void SimpleTrade::OnResetStrategyState()
 {
-    m_momentum_map.clear();
     m_instrument_order_id_map.clear();
-    m_momentum = 0;
 }
 
 void SimpleTrade::DefineStrategyParams()
@@ -118,21 +115,6 @@ void SimpleTrade::OnBar(const BarEventMsg& msg)
     }
 
     if(msg.bar().close() < .01) return;
-
-
-    //check if we're already tracking the momentum object for this instrument, if not create a new one
-    MomentumMapIterator iter = m_momentum_map.find(&msg.instrument());
-    if (iter != m_momentum_map.end()) {
-        m_momentum = &iter->second;
-    } else {
-        m_momentum = &m_momentum_map.insert(make_pair(&msg.instrument(),Momentum(m_short_window_size,m_long_window_size))).first->second;
-    }
-
-    DesiredPositionSide side = m_momentum->Update(msg.bar().close());
-
-    if(m_momentum->FullyInitialized()) {
-        AdjustPortfolio(&msg.instrument(), m_position_size * side);
-    }
 }
 
 void SimpleTrade::OnOrderUpdate(const OrderUpdateEventMsg& msg)

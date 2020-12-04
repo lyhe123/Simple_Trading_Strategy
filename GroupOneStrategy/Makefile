@@ -11,8 +11,8 @@ else
     CFLAGS=-c -fPIC -fpermissive -O3 -std=c++11
 endif
 
-LIBPATH=../../../libs/x64
-INCLUDEPATH=../../../includes
+LIBPATH=/home/vagrant/Desktop/strategy_studio/localdev/RCM/StrategyStudio/libs/x64
+INCLUDEPATH=/home/vagrant/Desktop/strategy_studio/localdev/RCM/StrategyStudio/includes
 
 INCLUDES=-I/usr/include -I$(INCLUDEPATH)
 LDFLAGS=$(LIBPATH)/libstrategystudio_analytics.a $(LIBPATH)/libstrategystudio.a $(LIBPATH)/libstrategystudio_transport.a $(LIBPATH)/libstrategystudio_marketmodels.a $(LIBPATH)/libstrategystudio_utilities.a $(LIBPATH)/libstrategystudio_flashprotocol.a

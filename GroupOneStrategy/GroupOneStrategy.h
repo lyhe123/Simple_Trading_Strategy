@@ -24,7 +24,7 @@
 #define _STRATEGY_STUDIO_LIB_EXAMPLES_SIMPLE_MOMENTUM_STRATEGY_H_
 
 #ifdef _WIN32
-    #define _STRATEGY_EXPORTS __declspec(dllexport)
+:    #define _STRATEGY_EXPORTS __declspec(dllexport)
 #else
     #ifndef _STRATEGY_EXPORTS
     #define _STRATEGY_EXPORTS
@@ -50,38 +50,7 @@ enum DesiredPositionSide {
     DESIRED_POSITION_SIDE_LONG=1
 };
 
-class Momentum {
-public:
-    
-    Momentum(int short_window_size = 10, int long_window_size = 30) : m_shortWindow(short_window_size), m_longWindow(long_window_size) {}
-
-    void Reset()
-    {
-        m_shortWindow.clear();
-        m_longWindow.clear();
-    }
-
-    DesiredPositionSide Update(double val)
-    {
-        m_shortWindow.push_back(val);
-        m_longWindow.push_back(val);
-        if(m_shortWindow.Mean()>m_longWindow.Mean())
-            return DESIRED_POSITION_SIDE_LONG;
-        else
-            return DESIRED_POSITION_SIDE_SHORT;
-    }
-
-    bool FullyInitialized() { return (m_shortWindow.full() && m_longWindow.full()); }
-    
-    Analytics::ScalarRollingWindow<double> m_shortWindow;
-    Analytics::ScalarRollingWindow<double> m_longWindow;
-};
-
 class SimpleTrade : public Strategy {
-public:
-    typedef boost::unordered_map<const Instrument*, Momentum> MomentumMap; 
-    typedef MomentumMap::iterator MomentumMapIterator;
-
 public:
     SimpleTrade(StrategyID strategyID, const std::string& strategyName, const std::string& groupName);
     ~SimpleTrade();
@@ -183,9 +152,6 @@ private: /* from Strategy */
     virtual void DefineStrategyCommands();
 
 private:
-    boost::unordered_map<const Instrument*, Momentum> m_momentum_map;
-    boost::unordered_map<const Instrument*, OrderID> m_instrument_order_id_map;
-    Momentum* m_momentum;
     double m_max_notional;
     double m_aggressiveness;
     int m_position_size;
