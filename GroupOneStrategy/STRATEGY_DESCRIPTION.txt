@@ -1,11 +1,14 @@
-SimpleMomentumStrategy is a sample strategy for implementing a basic directional algorithm on a batch of symbols.
+SimplePairsStrategy is a sample strategy for implementing a basic pairs trading algorithm.
 
-This strategy subscribes to bars for whatever symbols are defined for the instance of the strategy. For each instrument,
-it maintains a Momentum calculation as the difference in the SMA of a shorter and longer term rolling window of prices. 
-If the short term SMA is above the long term SMA it will go long, otherwise it will go short. This example illustrates the 
-use of limit orders withing the Strategy Studio API, along with establishing StrategyCommands to control updating or canceling the 
-limit orders.
+Pairs trading is a reversionary strategy that looks for the pricing relationship between two correlated 
+securities to diverge from its historical norm. When this happens the strategy goes long the instrument 
+that is relatively cheaper than normal, and hedges by shorting the other instrument. This simple 
+implementation measures the price ratio of two instruments every ten seconds, and when this price ratio 
+is high compared to the 15 observation rolling sample of data, shorts the pair, if it's low goes long the pair, 
+and otherwise stays out of the market. For simplicity it sends market orders (and assumes they get filled), 
+and it hedges 1:1 in share count. SimplePairsStrategy defines parameters that lets the user control how many 
+shares to carry for each of the symbols, for how many standard deviations from normal the ratio has to be 
+before entering a position, and to toggle logging statements to the Strategy Manager."
 
 WARNING: The Strategy Studio example strategies are for documentation purposes only. They are not intended to produce profits
-and should not be used for production trading. This strategy is not meant to indicate any opinion on whether momentum
-or reversion are viable strategies on any time horizon.
+and should not be used for production trading
