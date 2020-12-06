@@ -194,13 +194,13 @@ extern "C" {
      // must match an existing user within the system 
     _STRATEGY_EXPORTS const char* GetAuthor()
     {
-        return "Administrator";
+        return "dlariviere";
     }
 
     // must match an existing trading group within the system 
     _STRATEGY_EXPORTS const char* GetAuthorGroup()
     {
-        return "DefaultGroup";
+        return "UIUC";
     }
 
     // used to ensure the strategy was built against a version of the SDK compatible with the server version
