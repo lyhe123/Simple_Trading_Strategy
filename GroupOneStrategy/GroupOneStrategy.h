@@ -1,11 +1,11 @@
 /*================================================================================                               
-*     Source: ../RCM/StrategyStudio/examples/strategies/SimpleMomentumStrategy/SimpleMomentumStrategy.h                                                        
-*     Last Update: 2013/06/1 13:55:14                                                                            
+*     Source: ../RCM/StrategyStudio/examples/strategies/SimplePairsStrategy/SimplePairsStrategy.h                                                        
+*     Last Update: 2010/09/30 13:55:14                                                                            
 *     Contents:                                     
 *     Distribution:          
 *                                                                                                                
 *                                                                                                                
-*     Copyright (c) RCM-X, 2011 - 2013.                                                  
+*     Copyright (c) RCM-X, 2011 - 2012.                                                
 *     All rights reserved.                                                                                       
 *                                                                                                                
 *     This software is part of Licensed material, which is the property of RCM-X ("Company"), 
@@ -20,11 +20,11 @@
 
 #pragma once
 
-#ifndef _STRATEGY_STUDIO_LIB_EXAMPLES_SIMPLE_MOMENTUM_STRATEGY_H_
-#define _STRATEGY_STUDIO_LIB_EXAMPLES_SIMPLE_MOMENTUM_STRATEGY_H_
+#ifndef _STRATEGY_STUDIO_LIB_EXAMPLES_SIMPLE_PAIRS_STRATEGY_H_
+#define _STRATEGY_STUDIO_LIB_EXAMPLES_SIMPLE_PAIRS_STRATEGY_H_
 
 #ifdef _WIN32
-:    #define _STRATEGY_EXPORTS __declspec(dllexport)
+    #define _STRATEGY_EXPORTS __declspec(dllexport)
 #else
     #ifndef _STRATEGY_EXPORTS
     #define _STRATEGY_EXPORTS
@@ -33,8 +33,6 @@
 
 #include <Strategy.h>
 #include <Analytics/ScalarRollingWindow.h>
-#include <Analytics/InhomogeneousOperators.h>
-#include <Analytics/IncrementalEstimation.h>
 #include <MarketModels/Instrument.h>
 #include <Utilities/ParseConfig.h>
 
@@ -44,16 +42,28 @@
 
 using namespace RCM::StrategyStudio;
 
-enum DesiredPositionSide {
-    DESIRED_POSITION_SIDE_SHORT=-1,
-    DESIRED_POSITION_SIDE_FLAT=0,
-    DESIRED_POSITION_SIDE_LONG=1
+struct StrategyLogicState {
+
+    StrategyLogicState(): marketActive(0), unitsDesired(0) {}
+
+    StrategyLogicState(int sunitsDesired): 
+        marketActive(0), unitsDesired(unitsDesired)
+    {
+    }
+
+    bool marketActive;
+    int unitsDesired;    
 };
 
-class SimpleTrade : public Strategy {
+class SimplePairs : public Strategy {
 public:
-    SimpleTrade(StrategyID strategyID, const std::string& strategyName, const std::string& groupName);
-    ~SimpleTrade();
+    typedef std::map<const Instrument*, Bar> Bars; 
+    typedef Bars::iterator BarsIter;
+    typedef Bars::const_iterator BarsConstIter;
+
+public:
+    SimplePairs(StrategyID strategyID, const std::string& strategyName, const std::string& groupName);
+    ~SimplePairs();
 
 public: /* from IEventCallback */
 
@@ -68,8 +78,8 @@ public: /* from IEventCallback */
      *
      * If the quote datasource only provides ticks that change the NBBO, top quote will be set to NBBO
      */ 
-    virtual void OnTopQuote(const QuoteEventMsg& msg){}    
-    
+    virtual void OnTopQuote(const QuoteEventMsg& msg);
+
     /**
      * This event triggers whenever a new quote for a market center arrives from a consolidate or direct quote feed,
      * or when the market center's best price from a depth of book feed changes.
@@ -78,13 +88,13 @@ public: /* from IEventCallback */
      * the data source only provides quotes that affect the official NBBO, as this is not enough information to accurately
      * mantain the state of each market center's quote.
      */ 
-    virtual void OnQuote(const QuoteEventMsg& msg){}
+    virtual void OnQuote(const QuoteEventMsg& msg) {}
     
     /**
      * This event triggers whenever a order book message arrives. This will be the first thing that
      * triggers if an order book entry impacts the exchange's DirectQuote or Strategy Studio's TopQuote calculation.
      */ 
-    virtual void OnDepth(const MarketDepthEventMsg& msg){}
+    virtual void OnDepth(const MarketDepthEventMsg& msg) {}
 
     /**
      * This event triggers whenever a Bar interval completes for an instrument
@@ -94,7 +104,7 @@ public: /* from IEventCallback */
     /**
      * This event contains alerts about the state of the market
      */
-    virtual void OnMarketState(const MarketStateEventMsg& msg){};
+    virtual void OnMarketState(const MarketStateEventMsg& msg);
 
     /**
      * This event triggers whenever new information arrives about a strategy's orders
@@ -104,22 +114,22 @@ public: /* from IEventCallback */
     /**
      * This event contains strategy control commands arriving from the Strategy Studio client application (eg Strategy Manager)
      */ 
-    virtual void OnStrategyControl(const StrategyStateControlEventMsg& msg){}
-
-    /**
-     *  Perform additional reset for strategy state 
-     */
-    void OnResetStrategyState();
+    virtual void OnStrategyControl(const StrategyStateControlEventMsg& msg) {}
 
     /**
      * This event contains alerts about the status of a market data source
      */ 
-    void OnDataSubscription(const DataSubscriptionEventMsg& msg){}
+    virtual void OnDataSubscription(const DataSubscriptionEventMsg& msg) {}
 
     /**
-     * This event triggers whenever a custom strategy command is sent from the client
+     * This event contains alerts about the status of the Strategy Server process
      */ 
-    void OnStrategyCommand(const StrategyCommandEventMsg& msg);
+    virtual void OnAppStateChange(const AppStateEventMsg& msg);
+
+    /**
+    *  Perform additional reset for strategy state 
+    */
+    void OnResetStrategyState();
 
     /**
      * Notifies strategy for every succesfull change in the value of a strategy parameter.
@@ -131,11 +141,9 @@ public: /* from IEventCallback */
     void OnParamChanged(StrategyParam& param);
 
 private: // Helper functions specific to this strategy
-    void AdjustPortfolio(const Instrument* instrument, int desired_position);
-    void SendOrder(const Instrument* instrument, int trade_size);
-    void SendSimpleOrder(const Instrument* instrument, int trade_size);
-    void RepriceAll();
-    void Reprice(Order* order);
+    void AdjustPortfolio();
+    void SendBuyOrder(const Instrument* instrument, int unitsNeeded);
+    void SendSellOrder(const Instrument* instrument, int unitsNeeded);
 
 private: /* from Strategy */
     
@@ -147,17 +155,21 @@ private: /* from Strategy */
     virtual void DefineStrategyParams();
 
     /**
-     * Define any strategy commands for use by the strategy
+     * Provides an ideal place during strategy initialization to define custom strategy graphs using graphs().series().add(...) 
      */ 
-    virtual void DefineStrategyCommands();
+    virtual void DefineStrategyGraphs();
 
 private:
-    double m_max_notional;
-    double m_aggressiveness;
-    int m_position_size;
-    int m_short_window_size;
-    int m_long_window_size;
-    bool m_debug_on;
+    StrategyLogicState m_spState;
+    Bars m_bars;
+    const MarketModels::Instrument* m_instrumentX;    
+    const MarketModels::Instrument* m_instrumentY;
+    Analytics::ScalarRollingWindow<double> m_rollingWindow;
+    double m_zScore;
+    double m_zScoreThreshold;
+    int m_tradeSize;
+    int m_nOrdersOutstanding;
+    bool m_DebugOn;
 };
 
 extern "C" {
@@ -173,29 +185,29 @@ extern "C" {
                                    const char* groupName)
     {
         if (strcmp(strategyType,GetType()) == 0) {
-            return *(new SimpleTrade(strategyID, strategyName, groupName));
+            return *(new SimplePairs(strategyID, strategyName, groupName));
         } else {
             return NULL;
         }
     }
-
+        
      // must match an existing user within the system 
     _STRATEGY_EXPORTS const char* GetAuthor()
     {
-        return "dlariviere";
+        return "Administrator";
     }
 
     // must match an existing trading group within the system 
     _STRATEGY_EXPORTS const char* GetAuthorGroup()
     {
-        return "UIUC";
+        return "DefaultGroup";
     }
 
     // used to ensure the strategy was built against a version of the SDK compatible with the server version
     _STRATEGY_EXPORTS const char* GetReleaseVersion()
     {
         return Strategy::release_version();
-    }
+    }    
 }
 
 #endif
