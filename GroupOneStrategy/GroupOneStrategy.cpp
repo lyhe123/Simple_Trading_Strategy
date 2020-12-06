@@ -1,11 +1,11 @@
 /*================================================================================                               
-*     Source: ../RCM/StrategyStudio/examples/strategies/SimpleMomentumStrategy/SimpleMomentumStrategy.cpp                                                        
-*     Last Update: 2013/6/1 13:55:14                                                                            
+*     Source: ../RCM/StrategyStudio/examples/strategies/SimplePairsStrategy/SimplePairsExample.cpp                                                        
+*     Last Update: 2010/09/30 13:55:14                                                                            
 *     Contents:                                     
 *     Distribution:          
 *                                                                                                                
 *                                                                                                                
-*     Copyright (c) RCM-X, 2011 - 2013.                                                  
+*     Copyright (c) RCM-X, 2011 - 2012.                                                  
 *     All rights reserved.                                                                                       
 *                                                                                                                
 *     This software is part of Licensed material, which is the property of RCM-X ("Company"), 
@@ -40,227 +40,216 @@ using namespace RCM::StrategyStudio::Utilities;
 
 using namespace std;
 
-SimpleTrade::SimpleTrade(StrategyID strategyID, const std::string& strategyName, const std::string& groupName):
+SimplePairs::SimplePairs(StrategyID strategyID, const std::string& strategyName, const std::string& groupName):
     Strategy(strategyID, strategyName, groupName),
-    m_instrument_order_id_map(),
-    m_aggressiveness(0),
-    m_position_size(100),
-    m_debug_on(true),
-    m_short_window_size(10),
-    m_long_window_size(30)
+    m_spState(),
+    m_bars(),
+    m_instrumentX(NULL),
+    m_instrumentY(NULL),
+    m_rollingWindow(15),
+    m_zScore(0),
+    m_zScoreThreshold(2),
+    m_tradeSize(100),
+    m_nOrdersOutstanding(0),
+    m_DebugOn(false)
 {
+    // note: assume market state is active
+    m_spState.marketActive = true;
     //this->set_enabled_pre_open_data_flag(true);
     //this->set_enabled_pre_open_trade_flag(true);
     //this->set_enabled_post_close_data_flag(true);
     //this->set_enabled_post_close_trade_flag(true);
 }
 
-SimpleTrade::~SimpleTrade()
+SimplePairs::~SimplePairs()
 {
-
 }
 
-void SimpleTrade::OnResetStrategyState()
+void SimplePairs::OnResetStrategyState()
 {
-    m_instrument_order_id_map.clear();
+    m_spState.marketActive = true;
+    m_spState.unitsDesired = 0;
+
+    m_rollingWindow.clear();
+    m_bars.clear();
 }
 
-void SimpleTrade::DefineStrategyParams()
+void SimplePairs::DefineStrategyParams()
 {
-    CreateStrategyParamArgs arg1("aggressiveness", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_DOUBLE, m_aggressiveness);
+    CreateStrategyParamArgs arg1("z_score", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_DOUBLE, m_zScoreThreshold);
     params().CreateParam(arg1);
 
-    CreateStrategyParamArgs arg2("position_size", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_INT, m_position_size);
+    CreateStrategyParamArgs arg2("trade_size", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_INT, m_tradeSize);
     params().CreateParam(arg2);
 
-    CreateStrategyParamArgs arg3("short_window_size", STRATEGY_PARAM_TYPE_STARTUP, VALUE_TYPE_INT, m_short_window_size);
+    CreateStrategyParamArgs arg3("debug", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_BOOL, m_DebugOn);
     params().CreateParam(arg3);
-    
-    CreateStrategyParamArgs arg4("long_window_size", STRATEGY_PARAM_TYPE_STARTUP, VALUE_TYPE_INT, m_long_window_size);
-    params().CreateParam(arg4);
-    
-    CreateStrategyParamArgs arg5("debug", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_BOOL, m_debug_on);
-    params().CreateParam(arg5);
 }
 
-void SimpleTrade::DefineStrategyCommands()
+void SimplePairs::DefineStrategyGraphs()
 {
-    StrategyCommand command1(1, "Reprice Existing Orders");
-    commands().AddCommand(command1);
-
-    StrategyCommand command2(2, "Cancel All Orders");
-    commands().AddCommand(command2);
+    graphs().series().add("Mean");
+    graphs().series().add("ZScore");
 }
 
-void SimpleTrade::RegisterForStrategyEvents(StrategyEventRegister* eventRegister, DateType currDate)
+void SimplePairs::RegisterForStrategyEvents(StrategyEventRegister* eventRegister, DateType currDate)
 {    
+    int count = 0;
+
     for (SymbolSetConstIter it = symbols_begin(); it != symbols_end(); ++it) {
-        eventRegister->RegisterForBars(*it, BAR_TYPE_TIME, 10);
-    }
-}
-void SimpleTrade::OnTrade(const TradeDataEventMsg& msg)
-{
-	std::cout << "OnTrade(): (" << msg.adapter_time() << "): " << msg.instrument().symbol() << ": " << msg.trade().size() << " @ $" << msg.trade().price() << std::endl;
-	for (int i=0; i<1; i++)
-	this->SendSimpleOrder(&msg.instrument(), 1); //buy one share every time there is a trade
-
-}
-void SimpleTrade::OnBar(const BarEventMsg& msg)
-{
-    if (m_debug_on) {
-        ostringstream str;
-        str << "FINDME" << msg.instrument().symbol() << ": " << msg.bar();
-        logger().LogToClient(LOGLEVEL_DEBUG, str.str().c_str());
-        //std::cout << str.str().c_str() << std::endl;
-    }
-
-    if(msg.bar().close() < .01) return;
-}
-
-void SimpleTrade::OnOrderUpdate(const OrderUpdateEventMsg& msg)
-{    
-	std::cout << "OnOrderUpdate(): " << msg.update_time() << msg.name() << std::endl;
-    if(msg.completes_order())
-    {
-		m_instrument_order_id_map[msg.order().instrument()] = 0;
-		std::cout << "OnOrderUpdate(): order is complete; " << std::endl;
-    }
-}
-
-void SimpleTrade::AdjustPortfolio(const Instrument* instrument, int desired_position)
-{
-    int trade_size = desired_position - portfolio().position(instrument);
-
-    if (trade_size != 0) {
-        OrderID order_id = m_instrument_order_id_map[instrument];
-        //if we're not working an order for the instrument already, place a new order
-        if (order_id == 0) {
-            SendOrder(instrument, trade_size);
-        } else {  
-		    //otherwise find the order and cancel it if we're now trying to trade in the other direction
-            const Order* order = orders().find_working(order_id);
-            if(order && ((IsBuySide(order->order_side()) && trade_size < 0) || 
-			            ((IsSellSide(order->order_side()) && trade_size > 0)))) {
-                trade_actions()->SendCancelOrder(order_id);
-                //we're avoiding sending out a new order for the other side immediately to simplify the logic to the case where we're only tracking one order per instrument at any given time
-            }
+        EventInstrumentPair retVal = eventRegister->RegisterForBars(*it, BAR_TYPE_TIME, 10);    
+        
+        if (count == 0) {
+            m_instrumentX = retVal.second;
+        } else if (count == 1) {
+            m_instrumentY = retVal.second;
         }
+    
+        ++count;
     }
 }
 
-void SimpleTrade::SendSimpleOrder(const Instrument* instrument, int trade_size)
+void SimplePairs::OnTrade(const TradeDataEventMsg& msg)
 {
-
-	//this is simple check to avoid placing orders before the order book is actually fully initialized
-	//side note: if trading certain futures contracts for example, the price of an instrument actually can be zero or even negative. here we assume cash US equities so price > 0
-    /*
-	if(instrument->top_quote().ask()<.01 || instrument->top_quote().bid()<.01 || !instrument->top_quote().ask_side().IsValid() || !instrument->top_quote().ask_side().IsValid()) {
-        std::stringstream ss;
-        ss << "SendSimpleOrder(): Sending buy order for " << instrument->symbol() << " at price " << instrument->top_quote().ask() << " and quantity " << trade_size <<" with missing quote data";
-        logger().LogToClient(LOGLEVEL_DEBUG, ss.str());
-        std::cout << "SendSimpleOrder(): " << ss.str() << std::endl;
-        return;
-     }*/
-
-    m_aggressiveness = 0.02; //send order two pennies more aggressive than BBO
-    double last_trade_price = instrument->last_trade().price();
-    double price = trade_size > 0 ? last_trade_price + m_aggressiveness : last_trade_price - m_aggressiveness;
-
-    OrderParams params(*instrument,
-        abs(trade_size),
-        price,
-        (instrument->type() == INSTRUMENT_TYPE_EQUITY) ? MARKET_CENTER_ID_IEX : ((instrument->type() == INSTRUMENT_TYPE_OPTION) ? MARKET_CENTER_ID_CBOE_OPTIONS : MARKET_CENTER_ID_CME_GLOBEX),
-        (trade_size>0) ? ORDER_SIDE_BUY : ORDER_SIDE_SELL,
-        ORDER_TIF_DAY,
-        ORDER_TYPE_LIMIT);
-
-    std::cout << "SendSimpleOrder(): about to send new order for " << trade_size << " at $" << price << std::endl;
-    TradeActionResult tra = trade_actions()->SendNewOrder(params);
-    if (tra == TRADE_ACTION_RESULT_SUCCESSFUL) {
-        m_instrument_order_id_map[instrument] = params.order_id;
-        std::cout << "SendOrder(): Sending new order successful!" << std::endl;
-    }
-    else
-    {
-    	std::cout << "SendOrder(): Error sending new order!!!" << tra << std::endl;
-    }
-
 }
 
-
-void SimpleTrade::SendOrder(const Instrument* instrument, int trade_size)
+void SimplePairs::OnTopQuote(const QuoteEventMsg& msg)
 {
-	return;
-    if(instrument->top_quote().ask()<.01 || instrument->top_quote().bid()<.01 || !instrument->top_quote().ask_side().IsValid() || !instrument->top_quote().ask_side().IsValid()) {
-        std::stringstream ss;
-        ss << "Sending buy order for " << instrument->symbol() << " at price " << instrument->top_quote().ask() << " and quantity " << trade_size <<" with missing quote data";   
-        logger().LogToClient(LOGLEVEL_DEBUG, ss.str());
-        std::cout << "SendOrder(): " << ss.str() << std::endl;
-        return;
+}
+
+void SimplePairs::OnBar(const BarEventMsg& msg)
+{
+     if (m_DebugOn) {
+        ostringstream str;
+        str << msg.instrument().symbol() << ": "<< msg.bar();
+        logger().LogToClient(LOGLEVEL_DEBUG, str.str().c_str());
      }
 
-    double price = trade_size > 0 ? instrument->top_quote().bid() + m_aggressiveness : instrument->top_quote().ask() - m_aggressiveness;
+    // update our bars collection
+    m_bars[&msg.instrument()] = msg.bar();
+
+    if (m_bars.size() < 2) {
+	    //wait until we have bars for both pairs
+        return;
+    }
+
+    assert(m_bars.size() == 2);
+
+    double barCloseRatio = 0;
+    if (m_bars[m_instrumentY].close() != 0) {
+        barCloseRatio = m_bars[m_instrumentX].close() / m_bars[m_instrumentY].close();
+        m_bars.clear();
+    } else {
+        m_bars.clear();
+        return;
+    }
+    
+     m_rollingWindow.push_back(barCloseRatio);
+   
+    // only process when we have a complete rolling window
+    if (!m_rollingWindow.full())
+        return;
+
+    if (orders().num_working_orders() > 0) 
+        return;
+
+    m_zScore = m_rollingWindow.ZScore();
+
+    graphs().series()["Mean"]->push_back(msg.event_time(), m_rollingWindow.Mean());
+    graphs().series()["ZScore"]->push_back(msg.event_time(), m_zScore);    
+    
+    // sell X and buy Y when z widens 
+    if (m_zScore > m_zScoreThreshold) {
+        m_spState.unitsDesired = -m_tradeSize;
+    } else if (m_zScore < -m_zScoreThreshold) {
+        m_spState.unitsDesired = m_tradeSize;
+    } else {
+        m_spState.unitsDesired = 0;
+    }
+
+    if (m_spState.marketActive) AdjustPortfolio();
+}
+
+void SimplePairs::AdjustPortfolio()
+{
+    // wait until orders are filled before we send out more orders
+    if (orders().num_working_orders() > 0 || portfolio().position(m_instrumentX) != -portfolio().position(m_instrumentY)) {
+        return;
+    }
+
+    int unitsNeeded = m_spState.unitsDesired - portfolio().position(m_instrumentX);
+
+    if (unitsNeeded > 0) {
+        SendBuyOrder(m_instrumentX, unitsNeeded);
+        SendSellOrder(m_instrumentY, unitsNeeded);
+
+    } else if (unitsNeeded < 0) {
+        SendSellOrder(m_instrumentX, -unitsNeeded);
+        SendBuyOrder(m_instrumentY, -unitsNeeded);
+    }
+}
+
+void SimplePairs::SendBuyOrder(const Instrument* instrument, int unitsNeeded)
+{
+    if (m_DebugOn) {
+        std::stringstream ss;
+        ss << "Sending buy order for " << instrument->symbol() << " at price " << instrument->top_quote().ask() << " and quantity " << unitsNeeded;   
+        logger().LogToClient(LOGLEVEL_DEBUG, ss.str());
+    }
 
     OrderParams params(*instrument, 
-        abs(trade_size),
-        price, 
+        unitsNeeded,
+        (instrument->top_quote().ask() != 0) ? instrument->top_quote().ask() : instrument->last_trade().price(), 
         (instrument->type() == INSTRUMENT_TYPE_EQUITY) ? MARKET_CENTER_ID_NASDAQ : ((instrument->type() == INSTRUMENT_TYPE_OPTION) ? MARKET_CENTER_ID_CBOE_OPTIONS : MARKET_CENTER_ID_CME_GLOBEX),
-        (trade_size>0) ? ORDER_SIDE_BUY : ORDER_SIDE_SELL,
+        ORDER_SIDE_BUY,
         ORDER_TIF_DAY,
-        ORDER_TYPE_LIMIT);
+        ORDER_TYPE_MARKET);
 
-    if (trade_actions()->SendNewOrder(params) == TRADE_ACTION_RESULT_SUCCESSFUL) {
-        m_instrument_order_id_map[instrument] = params.order_id;
-    }
+    trade_actions()->SendNewOrder(params);
 }
-
-void SimpleTrade::RepriceAll()
+    
+void SimplePairs::SendSellOrder(const Instrument* instrument, int unitsNeeded)
 {
-    for (IOrderTracker::WorkingOrdersConstIter ordit = orders().working_orders_begin(); ordit != orders().working_orders_end(); ++ordit) {
-        Reprice(*ordit);
+    if(m_DebugOn) {
+        std::stringstream ss;
+        ss << "Sending sell order for " << instrument->symbol() << " at price " << instrument->top_quote().bid() << " and quantity " << unitsNeeded;   
+        logger().LogToClient(LOGLEVEL_DEBUG, ss.str());
     }
+
+    OrderParams params(*instrument, 
+        unitsNeeded,
+        (instrument->top_quote().bid() != 0) ? instrument->top_quote().bid() : instrument->last_trade().price(), 
+        (instrument->type() == INSTRUMENT_TYPE_EQUITY) ? MARKET_CENTER_ID_NASDAQ : ((instrument->type() == INSTRUMENT_TYPE_OPTION) ? MARKET_CENTER_ID_CBOE_OPTIONS : MARKET_CENTER_ID_CME_GLOBEX),
+        ORDER_SIDE_SELL,
+        ORDER_TIF_DAY,
+        ORDER_TYPE_MARKET);
+
+    trade_actions()->SendNewOrder(params);
 }
 
-void SimpleTrade::Reprice(Order* order)
+void SimplePairs::OnMarketState(const MarketStateEventMsg& msg)
 {
-    OrderParams params = order->params();
-    params.price = (order->order_side() == ORDER_SIDE_BUY) ? order->instrument()->top_quote().bid() + m_aggressiveness : order->instrument()->top_quote().ask() - m_aggressiveness;
-    trade_actions()->SendCancelReplaceOrder(order->order_id(), params);
 }
 
-void SimpleTrade::OnStrategyCommand(const StrategyCommandEventMsg& msg)
+void SimplePairs::OnOrderUpdate(const OrderUpdateEventMsg& msg)  
 {
-    switch (msg.command_id()) {
-        case 1:
-            RepriceAll();
-            break;
-        case 2:
-            trade_actions()->SendCancelAll();
-            break;
-        default:
-            logger().LogToClient(LOGLEVEL_DEBUG, "Unknown strategy command received");
-            break;
-    }
 }
 
-void SimpleTrade::OnParamChanged(StrategyParam& param)
+void SimplePairs::OnAppStateChange(const AppStateEventMsg& msg)
+{
+}
+
+void SimplePairs::OnParamChanged(StrategyParam& param)
 {    
-	/*
-    if (param.param_name() == "aggressiveness") {                         
-        if (!param.Get(&m_aggressiveness))
-            throw StrategyStudioException("Could not get m_aggressiveness");
-    } else if (param.param_name() == "position_size") {
-        if (!param.Get(&m_position_size))
-            throw StrategyStudioException("Could not get position size");
-    } else if (param.param_name() == "short_window_size") {
-        if (!param.Get(&m_short_window_size))
+    if (param.param_name() == "z_score") {
+        if (!param.Get(&m_zScoreThreshold))
+            throw StrategyStudioException("Could not get zscore threshold");
+    } else if (param.param_name() == "trade_size") {
+        if (!param.Get(&m_tradeSize))
             throw StrategyStudioException("Could not get trade size");
-    } else if (param.param_name() == "long_window_size") {
-        if (!param.Get(&m_long_window_size))
-            throw StrategyStudioException("Could not get long_window_size");
     } else if (param.param_name() == "debug") {
-        if (!param.Get(&m_debug_on))
+        if (!param.Get(&m_DebugOn))
             throw StrategyStudioException("Could not get trade size");
-    } 
-    */
+    }        
 }
+
