@@ -22,7 +22,7 @@
     #include "stdafx.h"
 #endif
 
-#include "LingyuHeStrategy.h"
+#include "GroupOneStrategy.h"
 
 #include "FillInfo.h"
 #include "AllEventMsg.h"
@@ -33,6 +33,7 @@
 #include <math.h>
 #include <iostream>
 #include <cassert>
+#include <queue>
 
 using namespace RCM::StrategyStudio;
 using namespace RCM::StrategyStudio::MarketModels;
@@ -43,13 +44,19 @@ using namespace std;
 SimpleTrade::SimpleTrade(StrategyID strategyID, const std::string& strategyName, const std::string& groupName):
     Strategy(strategyID, strategyName, groupName),
     m_instrument_order_id_map(),
-    m_aggressiveness(0),
+	m_instrumentX(NULL),
+	m_instrumentY(NULL),
+    m_aggressiveness(0.2),
     m_position_size(100),
     m_debug_on(true),
 	ma_first(0),
 	ma_second(0),
 	last_trade(0),
-	trade_count(0)
+	trade_count(0),
+	hold_position(0),
+	current_50_trades(50,0.0),
+	lagged_50_trades(50, 0.0)
+
 {
     //this->set_enabled_pre_open_data_flag(true);
     //this->set_enabled_pre_open_trade_flag(true);
@@ -73,15 +80,9 @@ void SimpleTrade::DefineStrategyParams()
 
     CreateStrategyParamArgs arg2("position_size", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_INT, m_position_size);
     params().CreateParam(arg2);
-
-    CreateStrategyParamArgs arg3("short_window_size", STRATEGY_PARAM_TYPE_STARTUP, VALUE_TYPE_INT, m_short_window_size);
+    
+    CreateStrategyParamArgs arg3("debug", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_BOOL, m_debug_on);
     params().CreateParam(arg3);
-    
-    CreateStrategyParamArgs arg4("long_window_size", STRATEGY_PARAM_TYPE_STARTUP, VALUE_TYPE_INT, m_long_window_size);
-    params().CreateParam(arg4);
-    
-    CreateStrategyParamArgs arg5("debug", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_BOOL, m_debug_on);
-    params().CreateParam(arg5);
 }
 
 void SimpleTrade::DefineStrategyCommands()
@@ -99,76 +100,67 @@ void SimpleTrade::RegisterForStrategyEvents(StrategyEventRegister* eventRegister
         eventRegister->RegisterForBars(*it, BAR_TYPE_TIME, 10);
     }
 }
+
 void SimpleTrade::OnTrade(const TradeDataEventMsg& msg)
 {
 	std::cout << "OnTrade(): (" << msg.adapter_time() << "): " << msg.instrument().symbol() << ": " << msg.trade().size() << " @ $" << msg.trade().price() << std::endl;
-	ma_first = ma_first + msg.trade().price() / 50;
-	ma_second = ma_second + last_trade_price / 50;
-	last_trade_price = msg.trade().price();
-	if (trade_count >= 50) {
-		if ((ma_second - ma_first) >= 0.00025) {
-			this->SendSimpleOrder(&msg.instrument(), 1); //buy one share every time there is a trade
+	
+	if ((m_instrumentX == NULL) or (m_instrumentX == NULL))
+		if (msg.instrument().symbol() == "SPY") {
+			m_instrumentX = &msg.instrument();
 		}
-	}
-	trade_count ++
+		if (msg.instrument().symbol() == "VXX") {
+			m_instrumentY = &msg.instrument();
+		}
+	
+		if (msg.instrument().symbol() == "SPY") {
+			current_50_trades.pop_front();
+			current_50_trades.push_back(msg.trade().price());
+
+			ma_first = 0;
+			ma_second = 0;
+
+			for (int i = 0; i < 50; i++) {
+				ma_first = ma_first + current_50_trades[i];
+				ma_second = ma_second + lagged_50_trades[i];
+			}
+
+			ma_first = ma_first / 50;
+			ma_second = ma_second / 50;
+
+			if (trade_count >= 51) {
+				if ((ma_second - ma_first) >= 0.00025 && hold_position == 0) {
+					this->SendOrder(m_instrumentY, 100);
+				}
+
+				if ((ma_second - ma_first) <= 0.00025 && hold_position == 1) {
+					this->SendOrder(m_instrumentY, -100); //sell 
+				}
+			}
+
+			//if (msg.adapter_time() >= 1450 && hold_positon == 1) { // need to correct the time threshold
+				//this->SendOrder(m_instrumentY, -100); //close position when close to end of trading day to eliminate potiential risk during market closure
+			//}
+
+			trade_count++;
+			lagged_50_trades = current_50_trades;
+		}
 
 }
+
 void SimpleTrade::OnBar(const BarEventMsg& msg)
 {
-    if (m_debug_on) {
-        ostringstream str;
-        str << "FINDME" << msg.instrument().symbol() << ": " << msg.bar();
-        logger().LogToClient(LOGLEVEL_DEBUG, str.str().c_str());
-        //std::cout << str.str().c_str() << std::endl;
-    }
 
-    if(msg.bar().close() < .01) return;
-
-
-    //check if we're already tracking the momentum object for this instrument, if not create a new one
-    MomentumMapIterator iter = m_momentum_map.find(&msg.instrument());
-    if (iter != m_momentum_map.end()) {
-        m_momentum = &iter->second;
-    } else {
-        m_momentum = &m_momentum_map.insert(make_pair(&msg.instrument(),Momentum(m_short_window_size,m_long_window_size))).first->second;
-    }
-
-    DesiredPositionSide side = m_momentum->Update(msg.bar().close());
-
-    if(m_momentum->FullyInitialized()) {
-        AdjustPortfolio(&msg.instrument(), m_position_size * side);
-    }
 }
 
 void SimpleTrade::OnOrderUpdate(const OrderUpdateEventMsg& msg)
 {    
-	std::cout << "OnOrderUpdate(): " << msg.update_time() << msg.name() << std::endl;
-    if(msg.completes_order())
-    {
-		m_instrument_order_id_map[msg.order().instrument()] = 0;
-		std::cout << "OnOrderUpdate(): order is complete; " << std::endl;
-    }
+
 }
 
 void SimpleTrade::AdjustPortfolio(const Instrument* instrument, int desired_position)
 {
-    int trade_size = desired_position - portfolio().position(instrument);
 
-    if (trade_size != 0) {
-        OrderID order_id = m_instrument_order_id_map[instrument];
-        //if we're not working an order for the instrument already, place a new order
-        if (order_id == 0) {
-            SendOrder(instrument, trade_size);
-        } else {  
-		    //otherwise find the order and cancel it if we're now trying to trade in the other direction
-            const Order* order = orders().find_working(order_id);
-            if(order && ((IsBuySide(order->order_side()) && trade_size < 0) || 
-			            ((IsSellSide(order->order_side()) && trade_size > 0)))) {
-                trade_actions()->SendCancelOrder(order_id);
-                //we're avoiding sending out a new order for the other side immediately to simplify the logic to the case where we're only tracking one order per instrument at any given time
-            }
-        }
-    }
 }
 
 void SimpleTrade::SendSimpleOrder(const Instrument* instrument, int trade_size)
@@ -185,41 +177,18 @@ void SimpleTrade::SendSimpleOrder(const Instrument* instrument, int trade_size)
         return;
      }*/
 
-    m_aggressiveness = 0.02; //send order two pennies more aggressive than BBO
-    double last_trade_price = instrument->last_trade().price();
-    double price = trade_size > 0 ? last_trade_price + m_aggressiveness : last_trade_price - m_aggressiveness;
-
-    OrderParams params(*instrument,
-        abs(trade_size),
-        price,
-        (instrument->type() == INSTRUMENT_TYPE_EQUITY) ? MARKET_CENTER_ID_IEX : ((instrument->type() == INSTRUMENT_TYPE_OPTION) ? MARKET_CENTER_ID_CBOE_OPTIONS : MARKET_CENTER_ID_CME_GLOBEX),
-        (trade_size>0) ? ORDER_SIDE_BUY : ORDER_SIDE_SELL,
-        ORDER_TIF_DAY,
-        ORDER_TYPE_LIMIT);
-
-    std::cout << "SendSimpleOrder(): about to send new order for " << trade_size << " at $" << price << std::endl;
-    TradeActionResult tra = trade_actions()->SendNewOrder(params);
-    if (tra == TRADE_ACTION_RESULT_SUCCESSFUL) {
-        m_instrument_order_id_map[instrument] = params.order_id;
-        std::cout << "SendOrder(): Sending new order successful!" << std::endl;
-    }
-    else
-    {
-    	std::cout << "SendOrder(): Error sending new order!!!" << tra << std::endl;
-    }
-
 }
 
 
 void SimpleTrade::SendOrder(const Instrument* instrument, int trade_size)
 {
-	return;
+	
     if(instrument->top_quote().ask()<.01 || instrument->top_quote().bid()<.01 || !instrument->top_quote().ask_side().IsValid() || !instrument->top_quote().ask_side().IsValid()) {
         std::stringstream ss;
         ss << "Sending buy order for " << instrument->symbol() << " at price " << instrument->top_quote().ask() << " and quantity " << trade_size <<" with missing quote data";   
         logger().LogToClient(LOGLEVEL_DEBUG, ss.str());
         std::cout << "SendOrder(): " << ss.str() << std::endl;
-        return;
+        
      }
 
     double price = trade_size > 0 ? instrument->top_quote().bid() + m_aggressiveness : instrument->top_quote().ask() - m_aggressiveness;
@@ -233,8 +202,19 @@ void SimpleTrade::SendOrder(const Instrument* instrument, int trade_size)
         ORDER_TYPE_LIMIT);
 
     if (trade_actions()->SendNewOrder(params) == TRADE_ACTION_RESULT_SUCCESSFUL) {
+		if (trade_size > 0) {
+			hold_position = 1;
+		}
+		else {
+			hold_position = 0;
+		}
         m_instrument_order_id_map[instrument] = params.order_id;
+		std::cout << "SendOrder(): Sending new order successful!" << std::endl;
     }
+	else
+	{
+		std::cout << "SendOrder(): Error sending new order!!!" << std::endl;
+	}
 }
 
 void SimpleTrade::RepriceAll()

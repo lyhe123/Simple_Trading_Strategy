@@ -41,6 +41,7 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include <deque>
 
 using namespace RCM::StrategyStudio;
 
@@ -162,6 +163,12 @@ private:
 	double ma_second;
 	double last_trade;
 	int trade_count;
+	std::deque<double> lagged_50_trades;
+	std::deque<double> current_50_trades;
+	bool hold_position;
+	const MarketModels::Instrument* m_instrumentX;
+	const MarketModels::Instrument* m_instrumentY;
+
 };
 
 extern "C" {
