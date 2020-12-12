@@ -33,6 +33,7 @@
 #include <math.h>
 #include <iostream>
 #include <cassert>
+#include <queue>
 
 using namespace RCM::StrategyStudio;
 using namespace RCM::StrategyStudio::MarketModels;
@@ -102,9 +103,9 @@ void SimpleTrade::RegisterForStrategyEvents(StrategyEventRegister* eventRegister
 void SimpleTrade::OnTrade(const TradeDataEventMsg& msg)
 {
 	std::cout << "OnTrade(): (" << msg.adapter_time() << "): " << msg.instrument().symbol() << ": " << msg.trade().size() << " @ $" << msg.trade().price() << std::endl;
-	ma_first = ma_first + msg.trade().price() / 50;
-	ma_second = ma_second + last_trade_price / 50;
+	ma_first = (ma_first + msg.trade().price()) / 50;
 	last_trade_price = msg.trade().price();
+	ma_second = (ma_second + last_trade_price) / 50;
 	if (trade_count >= 50) {
 		if ((ma_second - ma_first) >= 0.00025) {
 			this->SendSimpleOrder(&msg.instrument(), 1); //buy one share every time there is a trade
