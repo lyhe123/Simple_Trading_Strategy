@@ -110,7 +110,7 @@ void SimpleTrade::OnTrade(const TradeDataEventMsg& msg)
 			this->SendSimpleOrder(&msg.instrument(), 1); //buy one share every time there is a trade
 		}
 	}
-	trade_count ++
+	trade_count ++;
 
 }
 void SimpleTrade::OnBar(const BarEventMsg& msg)
@@ -213,13 +213,13 @@ void SimpleTrade::SendSimpleOrder(const Instrument* instrument, int trade_size)
 
 void SimpleTrade::SendOrder(const Instrument* instrument, int trade_size)
 {
-	return;
+	
     if(instrument->top_quote().ask()<.01 || instrument->top_quote().bid()<.01 || !instrument->top_quote().ask_side().IsValid() || !instrument->top_quote().ask_side().IsValid()) {
         std::stringstream ss;
         ss << "Sending buy order for " << instrument->symbol() << " at price " << instrument->top_quote().ask() << " and quantity " << trade_size <<" with missing quote data";   
         logger().LogToClient(LOGLEVEL_DEBUG, ss.str());
         std::cout << "SendOrder(): " << ss.str() << std::endl;
-        return;
+        
      }
 
     double price = trade_size > 0 ? instrument->top_quote().bid() + m_aggressiveness : instrument->top_quote().ask() - m_aggressiveness;
