@@ -105,7 +105,7 @@ void SimpleTrade::OnTrade(const TradeDataEventMsg& msg)
 {
 	std::cout << "OnTrade(): (" << msg.adapter_time() << "): " << msg.instrument().symbol() << ": " << msg.trade().size() << " @ $" << msg.trade().price() << std::endl;
 	
-	if ((m_instrumentX == NULL) or (m_instrumentX == NULL))
+	if ((m_instrumentX == NULL) or (m_instrumentY == NULL))
 		if (msg.instrument().symbol() == "SPY") {
 			m_instrumentX = &msg.instrument();
 		}
