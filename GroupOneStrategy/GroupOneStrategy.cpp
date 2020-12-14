@@ -133,7 +133,7 @@ void SimpleTrade::OnTrade(const TradeDataEventMsg& msg)
 					this->SendOrder(m_instrumentY, 100);
 				}
 
-				if ((ma_second - ma_first) <= 0.00025 && hold_position == 1) {
+				if ((ma_second - ma_first) < 0.00025 && hold_position == 1) {
 					this->SendOrder(m_instrumentY, -100); //sell 
 				}
 			}
