@@ -1,1 +1,2 @@
-The strategy for our group is that we use the median of the absolute value of the last 50 SPY tickets moving average price change among the beginning 10 trading days as our threshold. If the moving average price change's absolute value is above the threshold, we would long/short the VXX. And at the end of the day, we will close the position. 
+The strategy for our group is that we use the median of the absolute value of the last 50 SPY tickets moving average price change among the beginning 10 trading days as our threshold. 
+If the moving average price change's absolute value is above the threshold, we would long/short the VXX. And at the end of the day, we will close the position. 
