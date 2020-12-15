@@ -51,11 +51,11 @@ enum DesiredPositionSide {
     DESIRED_POSITION_SIDE_LONG=1
 };
 
-class SimpleTrade : public Strategy {
+class GroupOneStrategy : public Strategy {
 
 public:
-    SimpleTrade(StrategyID strategyID, const std::string& strategyName, const std::string& groupName);
-    ~SimpleTrade();
+    GroupOneStrategy(StrategyID strategyID, const std::string& strategyName, const std::string& groupName);
+    ~GroupOneStrategy();
 
 public: /* from IEventCallback */
 
