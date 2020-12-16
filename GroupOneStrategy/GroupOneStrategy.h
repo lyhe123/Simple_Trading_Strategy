@@ -184,7 +184,7 @@ extern "C" {
                                    const char* groupName)
     {
         if (strcmp(strategyType,GetType()) == 0) {
-            return *(new SimpleTrade(strategyID, strategyName, groupName));
+            return *(new GroupOneStrategy(strategyID, strategyName, groupName));
         } else {
             return NULL;
         }

@@ -155,7 +155,17 @@ void GroupOneStrategy::OnBar(const BarEventMsg& msg)
 
 void GroupOneStrategy::OnOrderUpdate(const OrderUpdateEventMsg& msg)
 {    
-
+	std::cout << "OnOrderUpdate():" << msg.update_time() << msg.name() << std::endl;
+	if(msg.completes_order()) {
+		m_instrument_order_id_map[msg.order().instrument()] = 0;
+		std::cout << "OnOrderUpdate(): oder is complete; " << std::endl;
+		if (msg.order().order_side() == ORDER_SIDE_BUY) {
+			hold_position = 1;
+		}
+		else {
+			hold_position = 0;
+		}
+	} 
 }
 
 void GroupOneStrategy::AdjustPortfolio(const Instrument* instrument, int desired_position)
@@ -179,7 +189,6 @@ void GroupOneStrategy::SendSimpleOrder(const Instrument* instrument, int trade_s
 
 }
 
-
 void GroupOneStrategy::SendOrder(const Instrument* instrument, int trade_size)
 {
 	
@@ -202,12 +211,6 @@ void GroupOneStrategy::SendOrder(const Instrument* instrument, int trade_size)
         ORDER_TYPE_LIMIT);
 
     if (trade_actions()->SendNewOrder(params) == TRADE_ACTION_RESULT_SUCCESSFUL) {
-		if (trade_size > 0) {
-			hold_position = 1;
-		}
-		else {
-			hold_position = 0;
-		}
         m_instrument_order_id_map[instrument] = params.order_id;
 		std::cout << "SendOrder(): Sending new order successful!" << std::endl;
     }
