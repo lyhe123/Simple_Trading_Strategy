@@ -55,7 +55,9 @@ GroupOneStrategy::GroupOneStrategy(StrategyID strategyID, const std::string& str
 	trade_count(0),
 	hold_position(0),
 	current_50_trades(50,0.0),
-	lagged_50_trades(50, 0.0)
+	lagged_50_trades(50, 0.0),
+	max_trade_num(100),
+	trade_num(0)
 
 {
     //this->set_enabled_pre_open_data_flag(true);
@@ -128,7 +130,7 @@ void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 			ma_first = ma_first / 50;
 			ma_second = ma_second / 50;
 
-			if (trade_count >= 51) {
+			if (trade_count >= 51 && trade_num <= max_trade_num) {
 				if ((ma_second - ma_first) >= 0.00025 && hold_position == 0) {
 					this->SendOrder(m_instrumentY, 100);
 				}
@@ -205,14 +207,15 @@ void GroupOneStrategy::SendOrder(const Instrument* instrument, int trade_size)
     OrderParams params(*instrument, 
         abs(trade_size),
         price, 
-        (instrument->type() == INSTRUMENT_TYPE_EQUITY) ? MARKET_CENTER_ID_NASDAQ : ((instrument->type() == INSTRUMENT_TYPE_OPTION) ? MARKET_CENTER_ID_CBOE_OPTIONS : MARKET_CENTER_ID_CME_GLOBEX),
+        MARKET_CENTER_ID_IEX,
         (trade_size>0) ? ORDER_SIDE_BUY : ORDER_SIDE_SELL,
         ORDER_TIF_DAY,
-        ORDER_TYPE_LIMIT);
+        ORDER_TYPE_MARKET);
 
     if (trade_actions()->SendNewOrder(params) == TRADE_ACTION_RESULT_SUCCESSFUL) {
         m_instrument_order_id_map[instrument] = params.order_id;
 		std::cout << "SendOrder(): Sending new order successful!" << std::endl;
+		trade_num++;
     }
 	else
 	{

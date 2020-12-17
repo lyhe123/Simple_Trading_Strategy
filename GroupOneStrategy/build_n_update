@@ -8,7 +8,7 @@ make all || exit 1
 
 echo "Copy the strategy to backtesting folder..."
 
-cp *.so ~/Desktop/strategy_studio/backtesting/strategies_ddls
+cp *.so ~/Desktop/strategy_studio/backtesting/strategies_dlls
 
 read -p "Start backtester?(y/n) >" selection
 

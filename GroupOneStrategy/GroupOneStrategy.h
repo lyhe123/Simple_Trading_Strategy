@@ -168,7 +168,8 @@ private:
 	bool hold_position;
 	const MarketModels::Instrument* m_instrumentX;
 	const MarketModels::Instrument* m_instrumentY;
-
+	int max_trade_num;
+	int trade_num;
 };
 
 extern "C" {
