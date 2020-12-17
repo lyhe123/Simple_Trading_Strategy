@@ -1,0 +1,21 @@
+
+#!/usr/bin/env bash
+
+echo "Start compiling the strategy..."
+
+make all || exit 1
+
+
+echo "Copy the strategy to backtesting folder..."
+
+cp *.so ~/Desktop/strategy_studio/backtesting/strategies_ddls
+
+read -p "Start backtester?(y/n) >" selection
+
+echo $selection
+
+case "$selection" in 
+	y|Y ) (cd ~/Desktop/strategy_studio/backtesting/ && ./StrategyServerBacktesting);;
+	n|N ) echo "No, exiting";;
+	* ) echo "invalid, exiting";;
+esac
