@@ -60,10 +60,7 @@ GroupOneStrategy::GroupOneStrategy(StrategyID strategyID, const std::string& str
 	trade_num(0)
 
 {
-    //this->set_enabled_pre_open_data_flag(true);
-    //this->set_enabled_pre_open_trade_flag(true);
-    //this->set_enabled_post_close_data_flag(true);
-    //this->set_enabled_post_close_trade_flag(true);
+    
 }
 
 GroupOneStrategy::~GroupOneStrategy()
@@ -131,11 +128,11 @@ void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 			ma_second = ma_second / 50;
 
 			if (trade_count >= 51 && trade_num <= max_trade_num) {
-				if ((ma_second - ma_first) >= 0.00025 && hold_position == 0) {
-					this->SendOrder(m_instrumentY, 100);
+				if ((ma_second - ma_first) >= 0.00025 && hold_position == 1) {
+					this->SendOrder(m_instrumentY, 100); //buy
 				}
 
-				if ((ma_second - ma_first) < 0.00025 && hold_position == 1) {
+				if ((ma_second - ma_first) < 0.00025 && hold_position == 0) {
 					this->SendOrder(m_instrumentY, -100); //sell 
 				}
 			}
@@ -177,17 +174,6 @@ void GroupOneStrategy::AdjustPortfolio(const Instrument* instrument, int desired
 
 void GroupOneStrategy::SendSimpleOrder(const Instrument* instrument, int trade_size)
 {
-
-	//this is simple check to avoid placing orders before the order book is actually fully initialized
-	//side note: if trading certain futures contracts for example, the price of an instrument actually can be zero or even negative. here we assume cash US equities so price > 0
-    /*
-	if(instrument->top_quote().ask()<.01 || instrument->top_quote().bid()<.01 || !instrument->top_quote().ask_side().IsValid() || !instrument->top_quote().ask_side().IsValid()) {
-        std::stringstream ss;
-        ss << "SendSimpleOrder(): Sending buy order for " << instrument->symbol() << " at price " << instrument->top_quote().ask() << " and quantity " << trade_size <<" with missing quote data";
-        logger().LogToClient(LOGLEVEL_DEBUG, ss.str());
-        std::cout << "SendSimpleOrder(): " << ss.str() << std::endl;
-        return;
-     }*/
 
 }
 
@@ -254,22 +240,5 @@ void GroupOneStrategy::OnStrategyCommand(const StrategyCommandEventMsg& msg)
 
 void GroupOneStrategy::OnParamChanged(StrategyParam& param)
 {    
-	/*
-    if (param.param_name() == "aggressiveness") {                         
-        if (!param.Get(&m_aggressiveness))
-            throw StrategyStudioException("Could not get m_aggressiveness");
-    } else if (param.param_name() == "position_size") {
-        if (!param.Get(&m_position_size))
-            throw StrategyStudioException("Could not get position size");
-    } else if (param.param_name() == "short_window_size") {
-        if (!param.Get(&m_short_window_size))
-            throw StrategyStudioException("Could not get trade size");
-    } else if (param.param_name() == "long_window_size") {
-        if (!param.Get(&m_long_window_size))
-            throw StrategyStudioException("Could not get long_window_size");
-    } else if (param.param_name() == "debug") {
-        if (!param.Get(&m_debug_on))
-            throw StrategyStudioException("Could not get trade size");
-    } 
-    */
+ 
 }
