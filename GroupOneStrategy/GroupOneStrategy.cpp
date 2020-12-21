@@ -56,7 +56,7 @@ GroupOneStrategy::GroupOneStrategy(StrategyID strategyID, const std::string& str
 	hold_position(0),
 	current_50_trades(50,0.0),
 	lagged_50_trades(50, 0.0),
-	max_trade_num(100),
+	max_trade_num(10000000000000),
 	trade_num(0)
 
 {
