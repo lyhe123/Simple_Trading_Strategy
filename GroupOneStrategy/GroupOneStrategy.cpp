@@ -129,7 +129,7 @@ void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 
 			if (trade_count >= 51 && trade_num <= max_trade_num) {
 				if ((ma_second - ma_first) >= 0.00025 && hold_position == 1) {
-					this->SendOrder(m_instrumentY, 100);
+					this->SendOrder(m_instrumentY, 100); //buy
 				}
 
 				if ((ma_second - ma_first) < 0.00025 && hold_position == 0) {
