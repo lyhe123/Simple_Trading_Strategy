@@ -113,13 +113,16 @@ void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 	std::string minutes = time.substr(time.find(':') + 1);
 	int minutes_int = std::stoi(minutes);
 	int hour_int = std::stoi(hour);
-	if (hour_int >= 19 && minutes_int >= 59) { // need to correct the time threshold
+	if (hour_int >= 19 && minutes_int >= 59) { // at the last minute close our position
 		if (hold_position == 1) {
 			this->SendOrder(m_instrumentY, -100); //close position when close to end of trading day to eliminate potiential risk during market closure
 			std::cout <<"End of the day, close position" << endl;
 		}
 	}
-	else{
+	else if (hour_int == 13 && minutes_int == 0) {
+		//Do nothing, this is added to avoid a bug occured on 13:00
+	}
+	else {
 		if ((m_instrumentX == NULL) or (m_instrumentY == NULL)) {
 			if (msg.instrument().symbol() == "SPY") {
 				m_instrumentX = &msg.instrument(); //assign symbol SPY to m_instrumentX
