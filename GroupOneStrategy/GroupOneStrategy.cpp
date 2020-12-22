@@ -34,6 +34,7 @@
 #include <iostream>
 #include <cassert>
 #include <queue>
+#include <sstream>
 
 using namespace RCM::StrategyStudio;
 using namespace RCM::StrategyStudio::MarketModels;
@@ -104,14 +105,30 @@ void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 {
 	std::cout << "OnTrade(): (" << msg.adapter_time() << "): " << msg.instrument().symbol() << ": " << msg.trade().size() << " @ $" << msg.trade().price() << std::endl;
 	
-	if ((m_instrumentX == NULL) or (m_instrumentY == NULL))
-		if (msg.instrument().symbol() == "SPY") {
-			m_instrumentX = &msg.instrument(); //assign symbol SPY to m_instrumentX
+	std::stringstream ss;
+	ss << msg.adapter_time();			
+	std::string tmstp = ss.str();
+	std::string time = tmstp.substr(tmstp.find(' ') + 1, 6);
+	std::string hour = time.substr(0, time.find(':'));
+	std::string minutes = time.substr(time.find(':') + 1);
+	int minutes_int = std::stoi(minutes);
+	int hour_int = std::stoi(hour);
+	if (hour_int >= 19 && minutes_int >= 59) { // need to correct the time threshold
+		if (hold_position == 1) {
+			this->SendOrder(m_instrumentY, -100); //close position when close to end of trading day to eliminate potiential risk during market closure
+			std::cout <<"End of the day, close position" << endl;
 		}
-		if (msg.instrument().symbol() == "VXX") {
-			m_instrumentY = &msg.instrument();  //assign symbol VXX to m_instrumentY
+	}
+	else{
+		if ((m_instrumentX == NULL) or (m_instrumentY == NULL)) {
+			if (msg.instrument().symbol() == "SPY") {
+				m_instrumentX = &msg.instrument(); //assign symbol SPY to m_instrumentX
+			}
+			if (msg.instrument().symbol() == "VXX") {
+				m_instrumentY = &msg.instrument();  //assign symbol VXX to m_instrumentY
+			}
 		}
-	
+		
 		if (msg.instrument().symbol() == "SPY") {
 			current_50_trades.pop_front(); //remove the oldest trade price
 			current_50_trades.push_back(msg.trade().price()); //add the latest trade price 
@@ -136,15 +153,13 @@ void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 					this->SendOrder(m_instrumentY, -100); //sell VXX when the difference is less than the threshold 
 				}
 			}
-
-			//if (msg.adapter_time() >= 1450 && hold_positon == 1) { // need to correct the time threshold
-				//this->SendOrder(m_instrumentY, -100); //close position when close to end of trading day to eliminate potiential risk during market closure
-			//}
-
+			
+			
+			
 			trade_count++;   //update the trade count after we send an order 
 			lagged_50_trades = current_50_trades; //now the current_50_trades becomes the lagged_50_trades as a new order is sent
 		}
-
+	}
 }
 
 void GroupOneStrategy::OnBar(const BarEventMsg& msg)
