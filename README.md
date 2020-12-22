@@ -1,9 +1,12 @@
 **Group Info:**
 
 Jialing Zhu jz72@illinois.edu - MSFE
+
 Jiaqi (Ivan) Su jiaqisu2@illinois.edu - MSFE
+
 Guancheng Guo gguo5@illinois.edu - MSFE
-Lingyu He lingyuh2@illinois.edu- MSFE
+
+Lingyu He lingyuh2@illinois.edu - MSFE
 
 
 **Project Structure:**
