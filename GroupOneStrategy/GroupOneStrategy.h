@@ -163,13 +163,13 @@ private:
 	double ma_second;
 	double last_trade;
 	int trade_count;
-	std::deque<double> lagged_50_trades;
-	std::deque<double> current_50_trades;
+	std::deque<double> lagged_50_trades; //double-ended queue to store last 50 trade prices
+	std::deque<double> current_50_trades; //double-ended queue to store current 50 trade pirces 
 	bool hold_position;
 	const MarketModels::Instrument* m_instrumentX;
 	const MarketModels::Instrument* m_instrumentY;
-	int max_trade_num;
-	int trade_num;
+	int max_trade_num; //the maximum number of trades can be reached 
+	int trade_num; // the number of trades being sent
 };
 
 extern "C" {
