@@ -128,11 +128,11 @@ void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 			ma_second = ma_second / 50;
 
 			if (trade_count >= 51 && trade_num <= max_trade_num) { //only execute our strategy when there are at least 51 trades 
-				if ((ma_second - ma_first) >= 0.00025 && hold_position == 1) {
+				if ((ma_second - ma_first) >= 0.0004 && hold_position == 0) {
 					this->SendOrder(m_instrumentY, 100); //buy VXX when the difference is above or equal the threshold 
 				}
 
-				if ((ma_second - ma_first) < 0.00025 && hold_position == 0) {
+				if ((ma_second - ma_first) <= -0.0004 && hold_position == 1) {
 					this->SendOrder(m_instrumentY, -100); //sell VXX when the difference is less than the threshold 
 				}
 			}
