@@ -1,11 +1,13 @@
-Group Info:
+**Group Info:**
 
-Jialing Zhu; net ID: jz72 - MSFE
-Jiaqi (Ivan) Su; net ID: jiaqisu2 - MSFE
-Guancheng Guo; net ID: gguo5 - MSFE
-Lingyu He; net ID: lingyuh2 - MSFE
+Jialing Zhu jz72@illinois.edu - MSFE
+Jiaqi (Ivan) Su jiaqisu2@illinois.edu - MSFE
+Guancheng Guo gguo5@illinois.edu - MSFE
+Lingyu He lingyuh2@illinois.edu- MSFE
 
 
-===
+**Project Structure:**
 
-This is Professor Lariviere showing an example of modifying a file and commiting to git. 
+- GroupOneStrategy: This contains the C++ codes for our strategy 
+- backtesting-cra-exports: This contains the results of running backtest on our strategy 
+- python_src : This contains the Python codes for our correlation analyses 
