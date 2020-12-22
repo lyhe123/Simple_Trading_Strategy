@@ -56,7 +56,7 @@ GroupOneStrategy::GroupOneStrategy(StrategyID strategyID, const std::string& str
 	hold_position(0),
 	current_50_trades(50,0.0),
 	lagged_50_trades(50, 0.0),
-	max_trade_num(10000000000000),
+	max_trade_num(10000000000000), //make sure that all the orders are cleared by the end of the trading day
 	trade_num(0)
 
 {
@@ -106,34 +106,34 @@ void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 	
 	if ((m_instrumentX == NULL) or (m_instrumentY == NULL))
 		if (msg.instrument().symbol() == "SPY") {
-			m_instrumentX = &msg.instrument();
+			m_instrumentX = &msg.instrument(); //assign symbol SPY to m_instrumentX
 		}
 		if (msg.instrument().symbol() == "VXX") {
-			m_instrumentY = &msg.instrument();
+			m_instrumentY = &msg.instrument();  //assign symbol VXX to m_instrumentY
 		}
 	
 		if (msg.instrument().symbol() == "SPY") {
-			current_50_trades.pop_front();
-			current_50_trades.push_back(msg.trade().price());
+			current_50_trades.pop_front(); //remove the oldest trade price
+			current_50_trades.push_back(msg.trade().price()); //add the latest trade price 
 
-			ma_first = 0;
-			ma_second = 0;
+			ma_first = 0; //varaible to store the moving sum of the current 50 trade prices
+			ma_second = 0; //variable to store the moving sum of lagged 50 trade prices
 
 			for (int i = 0; i < 50; i++) {
-				ma_first = ma_first + current_50_trades[i];
-				ma_second = ma_second + lagged_50_trades[i];
+				ma_first = ma_first + current_50_trades[i]; //compute the sum of the cuurent 50 trade prices
+				ma_second = ma_second + lagged_50_trades[i]; //compute the sum of the lagged 50 trade prices 
 			}
 
-			ma_first = ma_first / 50;
+			ma_first = ma_first / 50; //compute the moving avarage 
 			ma_second = ma_second / 50;
 
-			if (trade_count >= 51 && trade_num <= max_trade_num) {
+			if (trade_count >= 51 && trade_num <= max_trade_num) { //only execute our strategy when there are at least 51 trades 
 				if ((ma_second - ma_first) >= 0.00025 && hold_position == 1) {
-					this->SendOrder(m_instrumentY, 100); //buy
+					this->SendOrder(m_instrumentY, 100); //buy VXX when the difference is above or equal the threshold 
 				}
 
 				if ((ma_second - ma_first) < 0.00025 && hold_position == 0) {
-					this->SendOrder(m_instrumentY, -100); //sell 
+					this->SendOrder(m_instrumentY, -100); //sell VXX when the difference is less than the threshold 
 				}
 			}
 
@@ -141,8 +141,8 @@ void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 				//this->SendOrder(m_instrumentY, -100); //close position when close to end of trading day to eliminate potiential risk during market closure
 			//}
 
-			trade_count++;
-			lagged_50_trades = current_50_trades;
+			trade_count++;   //update the trade count after we send an order 
+			lagged_50_trades = current_50_trades; //now the current_50_trades becomes the lagged_50_trades as a new order is sent
 		}
 
 }
@@ -159,10 +159,10 @@ void GroupOneStrategy::OnOrderUpdate(const OrderUpdateEventMsg& msg)
 		m_instrument_order_id_map[msg.order().instrument()] = 0;
 		std::cout << "OnOrderUpdate(): oder is complete; " << std::endl;
 		if (msg.order().order_side() == ORDER_SIDE_BUY) {
-			hold_position = 1;
+			hold_position = 1;   //set the flag variable to be 1 when we are in buy side 
 		}
 		else {
-			hold_position = 0;
+			hold_position = 0; // set the flag varaible to be 0 when we are in sell side 
 		}
 	} 
 }
