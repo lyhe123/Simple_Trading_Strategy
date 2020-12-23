@@ -1,4 +1,4 @@
-**Group Info:**
+## Group Info
 
 Jialing Zhu jz72@illinois.edu - MSFE
 
@@ -10,7 +10,7 @@ Lingyu He lingyuh2@illinois.edu - MSFE
 
 ---
 
-**Project Structure:**
+## Project Structure
 
 - GroupOneStrategy: This contains the C++ codes for our strategy 
 - backtesting-cra-exports: This contains the results of running backtest on our strategy 
@@ -20,7 +20,7 @@ Lingyu He lingyuh2@illinois.edu - MSFE
 
 ---
 
-**How to run and backtest a Strategy**
+## How to run and backtest a Strategy
 
 - clone the repo in your current folder
 ```
@@ -62,7 +62,7 @@ export_cra_file backtesting-results/FILE_NAME.cra backtesting/backtesting-cra-ex
 ---
 
 
-**Important links**
+## Important links
 
 Market data: https://davidl.web.engr.illinois.edu/data/20191030_marketdata/
 
