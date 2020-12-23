@@ -40,14 +40,10 @@ After that, we calculate  the correlation correlations between the price change 
 The average correlation of the price change of VXX and SPY per minute within 24 trading days is  -0.5189110926715399.
 The average correlation of the price change of VXX and SPY per hour within 24 trading days is  -0.6290116674372686.
 We can also see it from the following plots.
-
-
-
+![](fin566_fall_2020_group_one/python_src/Plots/10-10.png)
 
 The following plot is the correlation between price change of VXX and SPY within 10 milliseconds. Here we dropped all the ticks without price change within 10 milliseconds, because in many situations, SPY and VXX did not change, and it would lower the actual correlation.
-
-
-
+![](fin566_fall_2020_group_one/python_src/Plots/10-10.png)
 
 So we build the strategy based on the negative correlations between the price change of VXX and SPY. When SPY price goes up and we do not have VXX we will short VXX, or clear VXX position if we have VXX positions; If SPY price goes down, we will buy VXX.
 
@@ -61,7 +57,8 @@ where hold position is a boolean which tracks if we have current position.
 We update “trade_count” every time and transfer the data stored in “current_50_trades” to “lagged_50_trades” after we execute every order (buy/sell 100 VXX) so that we have the latest information to continue our strategy. In addition, we also set an integer trade_num which keeps track of how many trades we make every day and an integer max_trade_number  to limit the maximum trade number we can execute every day. This is designed mainly for debugging. During the backtest, “max_trade_number” is set to a very large integer to remove this limitation.
  
 ## Backtesting Results Analysis & Optimization
-
+![](fin566_fall_2020_group_one/python_src/Plots/10-10.png)
+![](fin566_fall_2020_group_one/python_src/Plots/10-10.png)
 Examining the backtesting results of our initial strategy, we realized that our threshold is too small and therefore we increased our threshold from 0.00025 to 0.00040. Indeed, we observed better results after the increase of the threshold. furthermore, we found that our strategy starts losing money on Oct 14 and there is an abnormal vertical decline on our PNL graph. By looking further into the event that caused us to lose money, we discovered a bug in our initial strategy. At the beginning of certain trading days, there are a number of SPY trade updates coming in, while there are no VXX trades. This caused our strategy to keep submitting buy orders at the first minute of the trading day. All the orders get filled later and are not closed until the end of our backtesting period. To solve this problem, we added a piece of code that prevents our strategy from sending orders in the first minutes of each trading day. We also realized that there is a significant intra-day risk and we should not hold our position overnight. As a result, we added a block of code that stops our trading activity and close our position when we are in the last minutes of each trading day. Additionally, we utilized OnResetStrategyState() to reset our parameters at the beginning of each trading day. 
 
 After we fixed the problem, our strategy can profit during the backtest period (2019-10-10 to 2019-10-30). Both SPY and VXX fluctuated during this period, but our strategy is able to generate stable profit. By the end of the backtest period, our strategy made 2383 trades and generated 912.76 USD profit. The plot of the first trading day is included in the report while the rest of the PNL graph is included in the gitlab repo.
