@@ -60,8 +60,13 @@ export_cra_file backtesting-results/FILE_NAME.cra backtesting/backtesting-cra-ex
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The backtesting result in csv format will be saved in backtesting/backtesting-cra-exports
 
 ---
+
 ** Important links **
+
 Market data: https://davidl.web.engr.illinois.edu/data/20191030_marketdata/
+
 Lecture recording: https://davidl.web.engr.illinois.edu/fin566_fall_2020/lecture_videos/index.html
+
 Zoom Meeting: https://illinois.zoom.us/j/4585904848?pwd=Z0QzSGtFR3gzZ01uSG1hSjhXTTg3UT09
+
 Strategy Studio API Documentation: https://davidl.web.engr.illinois.edu/data/20191030_marketdata/rcm/RCM/StrategyStudio/docs/html/
