@@ -19,6 +19,7 @@ Lingyu He lingyuh2@illinois.edu - MSFE
 ---
 
 ** How to run and backtest a Strategy **
+
 - clone the repo in your current folder
 ```
 git clone https://gitlab.engr.illinois.edu/fin566_algo_market_micro_fall_2020/fin566_fall_2020_group_one.git
