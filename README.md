@@ -16,6 +16,7 @@ Lingyu He lingyuh2@illinois.edu - MSFE
 - backtesting-cra-exports: This contains the results of running backtest on our strategy 
 - python_src : This contains the Python codes for our correlation analyses 
 - backtest_archive: This contains the backtesting results of our intial (non-optimized) strategy
+- Report_Plots: Plots and graphs used in the analysis and plots used in the final report
 
 ---
 
