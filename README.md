@@ -17,7 +17,8 @@ Lingyu He lingyuh2@illinois.edu - MSFE
 - backtest_archive: This contains the backtesting results of our intial (non-optimized) strategy
 
 ---
-#Group One Strategy Report: A high-frequency trading strategy on VXX triggered by SPY
+
+# Group One Strategy Report: A high-frequency trading strategy on VXX triggered by SPY
 
 **Introduction:**
 
