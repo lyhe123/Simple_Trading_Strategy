@@ -29,7 +29,7 @@ git clone https://gitlab.engr.illinois.edu/fin566_algo_market_micro_fall_2020/fi
 ./build_n_update
 ```
 
-This will automatically build and update the strategy in the backtesting engine, then it will automatically start the backtesting engine
+    This will automatically build and update the strategy in the backtesting engine, then it will automatically start the backtesting engine
 
 - To backtest, first create an instance of the trading strategy, when inter
 ```
@@ -40,7 +40,7 @@ create_instance GroupOneStrategy GroupOneStrategy UIUC SIM-1001-101 dlariviere 1
 start_backtest YYYY-MM-DD YYYY-MM-DD GroupOneStrategy 1
 ```
 
-where the first date represents the starting date and the second dates represents the end date
+    where the first date represents the starting date and the second dates represents the end date
 
 - When the backtest is finished, search for the backtesting result which is in the following path, and it is in .cra format. The cra file can be found using the following command
 ```
