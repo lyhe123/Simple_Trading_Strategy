@@ -18,7 +18,7 @@ Lingyu He lingyuh2@illinois.edu - MSFE
 
 ---
 
-** How to run and backtest a Strategy **
+**How to run and backtest a Strategy**
 
 - clone the repo in your current folder
 ```
