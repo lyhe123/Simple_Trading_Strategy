@@ -47,6 +47,7 @@ After we fixed the problem, our strategy can profit during the backtest period (
  
 ## 2020 Backtest Result
 
+![](python_src/Plots/10-10.png)
 In order to test the profitability of our project during an abnormal period, namely during the 2020 pandemic, we backtested our strategy in a period starting from Jan 1, 2020 to Mar 30, 2020. Our strategy behaved normally until late February. It generates some profit at the beginning of January and then starts losing money later in that month. The reason for that is probably at the end of January the market starts rallying, with S&P 500 going up to its historical highest point. As a result, VXX remained low during that period while SPY went up rapidly and we got hurt by the SPY/VXX level change discrepancy. However, when it came to the end of February, the market started to drop due to COVID-19 concerns and our profit skyrocketed. From the end of February to the end of March, the market dropped rapidly, with VXX rallying. The threshold of our strategy is fixed, but during this period the volatility of the market increased by a lot. Consequently, we are making a lot more trades every day. Furthermore, our strategy only allows us to take a long position, so we took full advantage of the VXX price increase.
  
 ## ToubleShooting:
