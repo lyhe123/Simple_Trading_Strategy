@@ -18,6 +18,7 @@ Lingyu He lingyuh2@illinois.edu - MSFE
 
 ---
 #Group One Strategy Report: A high-frequency trading strategy on VXX triggered by SPY
+
 **Introduction:**
 
 In this project, we used the SPY and VXX as our trading symbols, and conducted research on correlations between SPY and VXX, then built our trading strategy based on the correlations.
