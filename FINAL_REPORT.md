@@ -40,9 +40,11 @@ After that, we calculate  the correlation correlations between the price change 
 The average correlation of the price change of VXX and SPY per minute within 24 trading days is  -0.5189110926715399.
 The average correlation of the price change of VXX and SPY per hour within 24 trading days is  -0.6290116674372686.
 We can also see it from the following plots.
+
 ![](fin566_fall_2020_group_one/python_src/Plots/10-10.png)
 
 The following plot is the correlation between price change of VXX and SPY within 10 milliseconds. Here we dropped all the ticks without price change within 10 milliseconds, because in many situations, SPY and VXX did not change, and it would lower the actual correlation.
+
 ![](fin566_fall_2020_group_one/python_src/Plots/10-10.png)
 
 So we build the strategy based on the negative correlations between the price change of VXX and SPY. When SPY price goes up and we do not have VXX we will short VXX, or clear VXX position if we have VXX positions; If SPY price goes down, we will buy VXX.
