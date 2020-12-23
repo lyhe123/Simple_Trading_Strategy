@@ -55,4 +55,4 @@ ls /home/vagrant/Desktop/strategy_studio/backtesting/backtesting-results
 export_cra_file backtesting-results/FILE_NAME.cra backtesting/backtesting-cra-exports
 ```
 
-- The backtesting result in csv format will be saved in backtesting/backtesting-cra-exports
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The backtesting result in csv format will be saved in backtesting/backtesting-cra-exports
