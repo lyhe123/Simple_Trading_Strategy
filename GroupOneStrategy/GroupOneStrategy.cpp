@@ -58,8 +58,9 @@ GroupOneStrategy::GroupOneStrategy(StrategyID strategyID, const std::string& str
 	current_50_trades(50,0.0),
 	lagged_50_trades(50, 0.0),
 	max_trade_num(10000000000000), //make sure that all the orders are cleared by the end of the trading day
-	trade_num(0)
-
+	trade_num(0),
+	seen_spy(0),
+	seen_vxx(0)
 {
     
 }
@@ -70,7 +71,14 @@ GroupOneStrategy::~GroupOneStrategy()
 
 void GroupOneStrategy::OnResetStrategyState()
 {
-    m_instrument_order_id_map.clear();
+   	m_instrument_order_id_map.clear();
+	trade_num = 0;
+	hold_position = 0;
+	seen_spy = 0;
+	seen_vxx = 0;
+	m_instrumentY = NULL;
+	m_instrumentX = NULL;
+	std::cout << "RESET" << std::endl;
 }
 
 void GroupOneStrategy::DefineStrategyParams()
@@ -103,7 +111,7 @@ void GroupOneStrategy::RegisterForStrategyEvents(StrategyEventRegister* eventReg
 
 void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 {
-	std::cout << "OnTrade(): (" << msg.adapter_time() << "): " << msg.instrument().symbol() << ": " << msg.trade().size() << " @ $" << msg.trade().price() << std::endl;
+	//std::cout << "OnTrade(): (" << msg.adapter_time() << "): " << msg.instrument().symbol() << ": " << msg.trade().size() << " @ $" << msg.trade().price() << std::endl;
 	
 	std::stringstream ss;
 	ss << msg.adapter_time();			
@@ -119,20 +127,22 @@ void GroupOneStrategy::OnTrade(const TradeDataEventMsg& msg)
 			std::cout <<"End of the day, close position" << endl;
 		}
 	}
-	else if (hour_int == 13 && minutes_int == 0) {
+	else if (hour_int == 13 && minutes_int <= 31) {
 		//Do nothing, this is added to avoid a bug occured on 13:00
 	}
 	else {
 		if ((m_instrumentX == NULL) or (m_instrumentY == NULL)) {
 			if (msg.instrument().symbol() == "SPY") {
 				m_instrumentX = &msg.instrument(); //assign symbol SPY to m_instrumentX
+				seen_spy = 1;
 			}
 			if (msg.instrument().symbol() == "VXX") {
 				m_instrumentY = &msg.instrument();  //assign symbol VXX to m_instrumentY
+				seen_vxx = 1;
 			}
 		}
 		
-		if (msg.instrument().symbol() == "SPY") {
+		if (msg.instrument().symbol() == "SPY" && (seen_spy * seen_vxx == 1)) {
 			current_50_trades.pop_front(); //remove the oldest trade price
 			current_50_trades.push_back(msg.trade().price()); //add the latest trade price 
 

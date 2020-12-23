@@ -170,6 +170,8 @@ private:
 	const MarketModels::Instrument* m_instrumentY;
 	int max_trade_num; //the maximum number of trades can be reached 
 	int trade_num; // the number of trades being sent
+	bool seen_spy;
+	bool seen_vxx;
 };
 
 extern "C" {
